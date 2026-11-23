@@ -1,0 +1,1617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive studio for continuously evolving console-inspired music and synth ambience.">
+  <meta name="color-scheme" content="dark">
+  <title>Endless Music Studio</title>
+  <style>
+:root {
+  color-scheme: dark;
+  --background: #101117;
+  --panel: #181a22;
+  --line: #2b2d39;
+  --text: #f0efed;
+  --muted: #a5a6b4;
+  --accent: #ffad82;
+  --accent-wash: #ffad8212;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font: 16px/1.5 "Inter", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  min-width: 280px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text);
+  background: radial-gradient(ellipse at 50% 0, #1d1b26 0%, transparent 57%), var(--background);
+}
+body[data-style="fm"] { --accent: #90d6ef; --accent-wash: #90d6ef11; }
+body[data-style="noir"] { --accent: #d4b3ff; --accent-wash: #d4b3ff13; }
+body[data-style="noir-studio"] { --accent: #f5afcf; --accent-wash: #f5afcf13; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.studio { max-width: 1256px; margin: 0 auto; padding: 48px 38px 24px; }
+.masthead { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 31px; }
+.heading { display: flex; align-items: center; gap: 17px; }
+.brand-mark {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 55px; height: 55px; flex: none; border: 1px solid #ffad8255; border-radius: 15px;
+  background: linear-gradient(140deg, #3f2b32, #2b2029); color: #ffad82;
+}
+.brand-mark i { width: 3px; height: 14px; border-radius: 2px; background: currentColor; }
+.brand-mark i:nth-child(2), .brand-mark i:nth-child(4) { height: 23px; }
+.brand-mark i:nth-child(3) { height: 30px; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.55rem); letter-spacing: -.055em; line-height: 1.08; margin: 0; font-weight: 740; }
+h2, legend { font-size: 1.13rem; font-weight: 670; letter-spacing: -.02em; margin: 0; }
+.heading p { color: var(--muted); margin: 6px 0 0; }
+.keyboard { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .86rem; white-space: nowrap; }
+kbd { font: .75rem var(--mono); border: 1px solid #3a3c48; color: #d5d4dc; padding: 3px 7px; border-radius: 5px; background: #20212b; }
+.workspace { display: grid; grid-template-columns: minmax(0, 2.25fr) minmax(278px, 1fr); gap: 18px; }
+.panel { min-width: 0; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: 0 12px 32px #0002; }
+.monitor { padding: 21px 22px 18px; }
+.monitor-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+.monitor-header p { margin: 3px 0 0; color: var(--muted); font-size: .9rem; }
+.status {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px;
+  border: 1px solid #363945; background: #1e202a; font-size: .82rem; color: #c9c9d4; white-space: nowrap;
+}
+.status i { width: 7px; height: 7px; border-radius: 50%; background: #9b9daf; }
+.status[data-state="playing"] { color: #a5e7bf; border-color: #79cba64f; background: #7bc79b10; }
+.status[data-state="playing"] i { background: #88dfac; box-shadow: 0 0 10px #88dfac75; }
+.status[data-state="paused"] i { background: #f2c482; }
+.display {
+  position: relative; border-radius: 11px; border: 1px solid #30303d; overflow: hidden;
+  background: radial-gradient(ellipse at 27% 24%, var(--accent-wash), transparent 73%), #101118;
+  padding: 0 13px;
+}
+.display-top, .timeline { display: flex; font: .78rem var(--mono); letter-spacing: .02em; color: #acaebd; }
+.display-top { justify-content: space-between; gap: 12px; align-items: center; padding: 11px 0 10px; }
+.display-top b { color: #777a8e; font-weight: 400; }
+#score { width: 100%; height: clamp(158px, 23vw, 232px); display: block; }
+.timeline { font-size: .72rem; padding: 8px 0 9px; }
+.timeline span { flex: 1; }
+.signal {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 45px; padding: 5px 1px; border-bottom: 1px solid var(--line);
+}
+.legend { display: flex; flex-wrap: wrap; gap: 7px 16px; color: #b8b8c5; font-size: .8rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; }
+.legend .lead::before { background: var(--accent); }
+.legend .harmony::before { background: #9492dc; }
+.legend .bass::before { background: #63c4ba; }
+body:is([data-style="noir"], [data-style="noir-studio"]) .legend .drums { display: none; }
+.legend .drums::before { background: #ad8a77; }
+#elapsed { font: .89rem var(--mono); color: #e5e2ec; }
+.transport, .transport-actions, .seed-group { display: flex; align-items: center; gap: 8px; }
+.transport { justify-content: space-between; padding-top: 13px; }
+.transport button {
+  min-height: 42px; border-radius: 8px; display: inline-flex; align-items: center;
+  justify-content: center; gap: 8px; white-space: nowrap; padding: 0 13px; font-size: .88rem;
+}
+.play { min-width: 105px; background: var(--accent); border: 1px solid var(--accent); color: #23171b; font-weight: 750; }
+.play .icon { width: 0; height: 0; border-block: 5px solid transparent; border-left: 8px solid currentColor; }
+.play[data-state="playing"] .icon { width: 8px; height: 10px; border-block: 0; border-inline: 2px solid currentColor; }
+.secondary, .seed-button { color: #e4e3ed; border: 1px solid #3b3d4b; background: #22242f; }
+.secondary:disabled { opacity: .38; }
+.stop-icon { width: 8px; height: 8px; border-radius: 1px; background: currentColor; }
+.seed-button { background: transparent; }
+.seed-icon { font-size: 1.22rem; line-height: 1; color: var(--accent); }
+.seed-display { padding-right: 5px; font: .76rem var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+button:hover:not(:disabled) { filter: brightness(1.15); }
+button:active:not(:disabled) { transform: translateY(1px); }
+.error { margin: 12px 0 0; color: #ffb4b4; font-size: .9rem; }
+.controls { padding: 21px 21px 18px; display: flex; flex-direction: column; }
+.control-intro { color: var(--muted); font-size: .9rem; margin: 3px 0 0; }
+.sliders { display: grid; gap: 22px; margin: 23px 0 21px; }
+.slider-head, .slider-ends { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.slider-head label { font-size: .94rem; font-weight: 620; }
+.slider-head output { font: .81rem var(--mono); color: var(--accent); }
+.slider-ends { color: var(--muted); font-size: .82rem; }
+.slider input {
+  display: block; width: 100%; margin: 5px 0 2px; height: 23px; cursor: pointer;
+  appearance: none; -webkit-appearance: none; background: transparent; border-radius: 6px;
+}
+.slider input::-webkit-slider-runnable-track {
+  height: 5px; border-radius: 5px; background: linear-gradient(90deg, var(--accent) var(--level), #373947 var(--level));
+}
+.slider input::-moz-range-track {
+  height: 5px; border-radius: 5px; background: linear-gradient(90deg, var(--accent) var(--level), #373947 var(--level));
+}
+.slider input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 15px; height: 15px; margin-top: -5px; border-radius: 50%;
+  border: 2px solid #181a22; background: var(--accent); box-shadow: 0 0 0 1px var(--accent);
+}
+.slider input::-moz-range-thumb {
+  width: 11px; height: 11px; border-radius: 50%; border: 2px solid #181a22; background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.control-note { display: flex; align-items: flex-start; gap: 9px; margin: auto 0 0; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+.control-note span { width: 7px; height: 7px; flex: none; margin-top: 7px; border: 1px solid var(--accent); transform: rotate(45deg); }
+.engines { margin: 24px 0 0; border: 0; padding: 0; min-inline-size: 0; }
+.engines legend { margin-bottom: 10px; padding: 0; }
+.engine-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.engine-card {
+  display: flex; align-items: center; gap: 11px; position: relative; cursor: pointer;
+  border-radius: 12px; border: 1px solid var(--line); background: #181a22; min-height: 85px; padding: 11px 12px;
+  --engine: #ffad82; --engine-bg: #382630;
+}
+.engine-card[data-style="fm"] { --engine: #90d6ef; --engine-bg: #272f40; }
+.engine-card[data-style="noir"] { --engine: #d4b3ff; --engine-bg: #31273e; }
+.engine-card[data-style="noir-studio"] { --engine: #f5afcf; --engine-bg: #38273a; }
+.engine-card:hover { background: #22232e; }
+.engine-card:has(input:checked) { border-color: var(--engine); background: color-mix(in srgb, var(--engine) 8%, #181a22); }
+.engine-card input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.engine-card:has(input:focus-visible) { outline: 2px solid var(--engine); outline-offset: 3px; }
+.engine-mark { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex: none; border-radius: 8px; background: var(--engine-bg); color: var(--engine); }
+.chip-mark i { width: 24px; height: 15px; background: currentColor; clip-path: polygon(0 78%, 18% 78%, 18% 5%, 56% 5%, 56% 78%, 75% 78%, 75% 33%, 100% 33%, 100% 49%, 84% 49%, 84% 94%, 47% 94%, 47% 20%, 27% 20%, 27% 94%, 0 94%); }
+.fm-mark { gap: 2px; }
+.fm-mark i { height: 10px; width: 2px; border-radius: 2px; background: currentColor; }
+.fm-mark i:nth-child(2), .fm-mark i:nth-child(4) { height: 17px; }
+.fm-mark i:nth-child(3) { height: 23px; }
+.noir-mark { position: relative; }
+.noir-mark i { width: 12px; height: 11px; border: solid currentColor; border-width: 2px 0 0 2px; border-radius: 75% 58% 0 0; transform: translate(1px, -1px) rotate(34deg); }
+.noir-mark i + i { transform: translate(-1px, 1px) rotate(214deg); }
+.studio-mark { position: relative; }
+.studio-mark i { position: absolute; width: 23px; height: 12px; border: solid currentColor; border-width: 1.5px 0 0; border-radius: 50%; transform: translateY(5px) rotate(-13deg); }
+.studio-mark i:nth-child(2) { transform: translateY(0) rotate(-13deg); }
+.studio-mark i:nth-child(3) { transform: translateY(-5px) rotate(-13deg); }
+.engine-text { flex: 1; min-width: 0; }
+.engine-text strong, .engine-text > span { display: block; }
+.engine-text strong { font-weight: 670; }
+.engine-text > span { margin-top: 2px; color: var(--muted); font-size: .86rem; line-height: 1.35; }
+.radio-mark { align-self: flex-start; margin-top: 5px; width: 13px; height: 13px; flex: none; border-radius: 50%; border: 1px solid #686a7b; }
+.engine-card:has(input:checked) .radio-mark { border-color: var(--engine); background: radial-gradient(circle, var(--engine) 0 3px, transparent 3.5px); }
+footer { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .8rem; padding: 17px 0 0; }
+@media (max-width: 940px) {
+  .studio { padding: 36px 24px 24px; }
+  .engine-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .engine-card { min-height: 92px; }
+}
+@media (max-width: 760px) {
+  .studio { padding: 24px 16px 18px; }
+  .masthead { margin-bottom: 22px; }
+  .workspace { grid-template-columns: 1fr; gap: 14px; }
+  .keyboard { display: none; }
+  .control-note { margin-top: 0; }
+  .sliders { gap: 17px; margin: 18px 0; }
+  .engine-grid { gap: 8px; }
+  .engine-card { padding: 10px; }
+  .engine-mark { display: none; }
+}
+@media (max-width: 500px) {
+  .heading { gap: 12px; }
+  .heading p { font-size: .9rem; }
+  .brand-mark { width: 44px; height: 44px; border-radius: 12px; }
+  .monitor, .controls { padding: 14px; }
+  .seed-group { gap: 4px; }
+  .seed-display { display: none; }
+  .display { padding-inline: 8px; }
+  .display-top { font-size: .72rem; }
+  .engine-grid { grid-template-columns: 1fr; }
+  .engine-card { min-height: 63px; padding-inline: 12px; }
+  .engine-mark { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled) { transform: none; }
+}
+.score-wrap { position: relative; }
+#playhead { position: absolute; inset: 0 auto 0 0; width: 1px; background: var(--accent); box-shadow: 0 0 8px var(--accent); pointer-events: none; }
+@media (max-width: 380px) {
+  .transport { flex-wrap: wrap; }
+}
+
+</style>
+  <script type="module">
+// audio-tools.mjs
+function frequency(pitch) {
+  return 440 * 2 ** ((pitch - 69) / 12);
+}
+
+function amp(node, at, duration, attack, release, level, sustain = .72) {
+  const value = node.gain;
+  const peak = at + attack;
+  const tail = Math.max(peak, at + duration - release);
+  value.setValueAtTime(.00001, at);
+  value.linearRampToValueAtTime(level, peak);
+  if (tail > peak) value.exponentialRampToValueAtTime(level * sustain, tail);
+  value.exponentialRampToValueAtTime(.00001, at + duration);
+}
+
+function filter(ctx, type, cutoff, resonance = .707) {
+  const node = ctx.createBiquadFilter();
+  node.type = type;
+  node.frequency.value = cutoff;
+  node.Q.value = resonance;
+  return node;
+}
+
+function oscillator(ctx, type, hz, detune = 0) {
+  const node = ctx.createOscillator();
+  if (typeof type === "string") node.type = type;
+  else node.setPeriodicWave(type);
+  node.frequency.value = hz;
+  node.detune.value = detune;
+  return node;
+}
+
+function wave(ctx, harmonics) {
+  return ctx.createPeriodicWave(new Float32Array(harmonics.length + 1), Float32Array.of(0, ...harmonics));
+}
+
+function stereo(ctx, pan) {
+  if (typeof ctx.createStereoPanner !== "function") return ctx.createGain();
+  const node = ctx.createStereoPanner();
+  node.pan.value = pan;
+  return node;
+}
+
+function drift(ctx, parameter, speed, depth, start, end, delay = 0) {
+  const voice = oscillator(ctx, "sine", speed);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(delay ? 0 : depth, start);
+  if (delay) {
+    gain.gain.setValueAtTime(0, start + delay);
+    gain.gain.linearRampToValueAtTime(depth, Math.min(start + delay + .64, end));
+  }
+  voice.connect(gain).connect(parameter);
+  voice.start(start);
+  voice.stop(end);
+  return gain;
+}
+
+// composer.mjs
+const minor = [0, 2, 3, 5, 7, 8, 10];
+const dorian = [0, 2, 3, 5, 7, 9, 10];
+const blues = [0, 3, 5, 6, 7, 10];
+
+const i = [0, 0, 3, 7];
+const iv = [5, 0, 3, 7];
+const flatSix = [8, 0, 4, 7];
+const flatSeven = [10, 0, 4, 7];
+const flatThree = [3, 0, 4, 7];
+const dominant = [7, 0, 4, 7];
+const minor7 = [0, 0, 3, 7, 10];
+const major7 = [3, 0, 4, 7, 11];
+const fourth9 = [5, 0, 4, 7, 10, 14];
+const seventh13 = [10, 0, 4, 10, 14, 21];
+
+const noirProfile = {
+  name: "Noir Synth", tempo: 64, keys: [0, 2, 3, 5, 7, 9], scale: blues, mode: "minor blues",
+};
+
+const profiles = {
+  chip: {
+    name: "8-bit Console", tempo: 128, keys: [0, 2, 4, 5, 7, 9], scale: minor, mode: "minor",
+    progressions: [
+      [i, flatSix, flatThree, flatSeven],
+      [i, iv, flatSix, dominant],
+      [i, flatSeven, flatSix, dominant],
+      [flatThree, flatSeven, iv, i],
+    ],
+    rhythms: [
+      [[0, .45], [.5, .45], [1, .7], [2, .47], [2.75, .23], [3, .72]],
+      [[0, .71], [1, .48], [1.5, .35], [2.25, .48], [3, .72]],
+      [[0, .37], [.5, .37], [1, .35], [1.5, .37], [2, .65], [3, .43], [3.5, .43]],
+    ],
+  },
+  fm: {
+    name: "16-bit Console", tempo: 108, keys: [0, 2, 4, 5, 7, 9], scale: dorian, mode: "Dorian",
+    progressions: [
+      [minor7, fourth9, seventh13, major7],
+      [minor7, major7, fourth9, seventh13],
+      [minor7, seventh13, fourth9, minor7],
+      [major7, seventh13, minor7, fourth9],
+    ],
+    rhythms: [
+      [[.05, .69], [1.08, .43], [1.62, .42], [2.55, 1.12]],
+      [[.55, .61], [1.32, .63], [2.1, .7], [3.16, .57]],
+      [[0, .9], [1.55, .44], [2.31, .39], [2.85, .86]],
+    ],
+  },
+  noir: noirProfile,
+  "noir-studio": { ...noirProfile, name: "Noir Studio", scoreStyle: "noir" },
+};
+
+const form = ["Theme", "Theme variation", "Contrast", "Return", "Development", "Theme variation", "Contrast", "Return"];
+const noteNames = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+
+function randomFrom(seed) {
+  let state = 2166136261;
+  for (const char of seed) state = Math.imul(state ^ char.charCodeAt(0), 16777619);
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed);
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick(list, rng) {
+  return list[Math.floor(rng() * list.length)];
+}
+
+function closestPitch(target, tonic, intervals) {
+  const center = Math.floor((target - tonic) / 12);
+  let nearest = target;
+  let distance = Infinity;
+  for (let octave = center - 1; octave <= center + 1; octave++) {
+    for (const interval of intervals) {
+      const pitch = tonic + octave * 12 + interval;
+      if (Math.abs(target - pitch) < distance) {
+        nearest = pitch;
+        distance = Math.abs(target - pitch);
+      }
+    }
+  }
+  return nearest;
+}
+
+function wrapPitch(pitch, floor) {
+  return floor + ((pitch - floor) % 12 + 12) % 12;
+}
+
+function compositionInfo(style, seed) {
+  const profile = profiles[style];
+  const rng = randomFrom(`${seed}|${profile.scoreStyle ?? style}|composition`);
+  const key = pick(profile.keys, rng);
+  return {
+    key,
+    keyName: `${noteNames[key]} ${profile.mode}`,
+    bpm: profile.tempo + pick([-4, -2, 0, 2, 4], rng),
+    home: Math.floor(rng() * 3),
+  };
+}
+
+function composeBar(config, index) {
+  const { style, seed, intensity, variation } = config;
+  const info = compositionInfo(style, seed);
+  const profile = profiles[style];
+  if ((profile.scoreStyle ?? style) === "noir") return composeNoirBar(config, index, info);
+  const energy = intensity / 100;
+  const change = variation / 100;
+  const phrase = Math.floor(index / 4);
+  const slot = index % 4;
+  const section = form[phrase % form.length];
+  const contrasting = section === "Contrast" || section === "Development";
+  const motifFamily = contrasting ? section : "theme";
+  const motif = randomFrom(`${seed}|${style}|${motifFamily}|${slot % 2}`);
+  const details = randomFrom(`${seed}|${style}|${index}|details`);
+  const changes = randomFrom(`${seed}|${style}|${phrase}|harmony`);
+  let progression = info.home;
+  if (contrasting || (section === "Theme variation" && changes() < change * .7)) {
+    progression = (info.home + (changes() < .48 + change * .19 ? 1 : 3)) % profile.progressions.length;
+  }
+  const [root, ...chord] = profile.progressions[progression][slot];
+  const tonic = 60 + info.key;
+  const bass = wrapPitch(tonic + root, 36);
+  const events = [];
+  const note = (track, pitch, beat, duration, level, extra = {}) => {
+    events.push({ track, pitch, beat, duration, level, ...extra });
+  };
+
+  const rhythmSet = pick(profile.rhythms, motif);
+  const contour = [0, 5, 7, 3, 9, 2, -2, 12];
+  let target = tonic + (contrasting ? 8 : 3) + pick([-3, 0, 2, 5], motif);
+  for (let position = 0; position < rhythmSet.length; position++) {
+    const [beat, duration] = rhythmSet[position];
+    target += pick(contour, motif) - 4;
+    if (target > tonic + 16) target -= 7;
+    if (target < tonic - 3) target += 7;
+    if (position && details() < (1 - energy) * .32) continue;
+    const ornament = position > 0 && details() < change * .62;
+    const anchored = !ornament && (position === 0 || position === rhythmSet.length - 1 || Number.isInteger(beat));
+    const pitch = anchored
+      ? closestPitch(target, tonic + root, chord.slice(0, 3))
+      : closestPitch(target + (ornament ? pick([-3, 2, 4], details) : 0), tonic, profile.scale);
+    note("lead", pitch, beat, duration, .59 + energy * .17 + details() * .14);
+  }
+
+  if (style === "chip") {
+    for (const beat of energy > .66 ? [0, .75, 1.5, 2, 2.75, 3.5] : [0, 1.5, 2, 3.25]) {
+      const pitch = beat === 2 ? bass + 7 : bass;
+      note("bass", pitch, beat, beat === 0 ? .64 : .43, .69 + energy * .16);
+    }
+    const step = energy > .7 ? .25 : .5;
+    for (let beat = 0; beat < 4; beat += step) {
+      if (details() > .3 + energy * .8 && beat % 1 !== 0) continue;
+      const index = Math.floor(beat / step + slot) % chord.length;
+      const pitch = wrapPitch(tonic + root + chord[index], 56) + (beat % 1 === .75 ? 12 : 0);
+      note("harmony", pitch, beat, step * .57, .42 + energy * .22);
+    }
+  } else {
+    for (const beat of energy > .63 ? [0, .82, 1.59, 2, 2.81, 3.58] : [0, 1.58, 2.27, 3.4]) {
+      const pitch = beat > 3 ? bass + 12 : beat > 1 && beat < 2 ? bass + 7 : bass;
+      note("bass", pitch, beat, beat === 0 ? .63 : .4, .68 + energy * .19);
+    }
+    for (const beat of energy > .58 ? [.04, 1.6, 2.62] : [.15, 2.42]) {
+      chord.slice(1, 5).forEach((interval, voice) => {
+        note("harmony", wrapPitch(tonic + root + interval, 54), beat + voice * .024, .68,
+          .38 + energy * .14, { pan: (voice % 2 ? .45 : -.45) * (voice < 2 ? .7 : 1) });
+      });
+    }
+    if (details() < .28 + energy * .6) {
+      note("harmony", wrapPitch(tonic + root + pick(chord, details), 68), 3.52, .36, .52, { pan: .39 });
+    }
+  }
+
+  const kicks = energy > .64 ? [0, 1.5, 2.5, 3.5] : [0, 2.5];
+  for (const beat of kicks) note("kick", 36, beat, .26, .58 + energy * .25);
+  for (const beat of [1, 3]) note("snare", 43, beat, .19, .49 + energy * .26);
+  for (const beat of energy > .53 ? [.5, 1.5, 2, 2.5, 3.5] : [.5, 2.5]) {
+    note("hat", 49, beat + (style === "fm" ? .06 : 0), .095, .30 + details() * .25);
+  }
+  if (slot === 3 && change > .32 && details() < change) {
+    const pickup = closestPitch(tonic + 11, tonic, profile.scale);
+    note("lead", pickup, 3.73, .233, .52);
+  }
+
+  return {
+    index, phrase, section, keyName: info.keyName, bpm: info.bpm,
+    events: events.sort((left, right) => left.beat - right.beat),
+  };
+}
+
+// Pitches sit in similar registers across the changes, with common tones between voicings.
+const noirHome = [0, 7, 14, 15, 22];
+const noirOpen = [0, 7, 12, 15, 26];
+const noirFlatSix = [8, 8, 12, 15, 19];
+const noirFourth = [5, 8, 12, 15, 19];
+const noirFlatThree = [3, 7, 10, 14, 19];
+const noirFlatSeven = [10, 5, 12, 14, 20];
+const noirDominant = [7, 7, 11, 17, 22];
+const noirChanges = [
+  [noirHome, noirFlatSix, noirFourth, noirOpen],
+  [noirHome, noirFlatThree, noirFlatSix, noirDominant],
+  [noirOpen, noirFourth, noirFlatSeven, noirHome],
+  [noirFlatSix, noirFlatThree, noirFourth, noirDominant],
+];
+
+// Lead figures specify onset, length, relative pitch, and the initial scoop in cents.
+const noirPhrases = [
+  [
+    [[1.72, 2.75, 19, -47]],
+    [[1.18, 1.38, 15, -36], [2.75, 2.75, 14, -68]],
+    [],
+    [[.83, 2.97, 12, -31]],
+  ],
+  [
+    [[1.12, 3.24, 15, -37]],
+    [[1.48, 2.43, 17, -65]],
+    [[2.08, 2.67, 22, -41]],
+    [[1.43, 2.37, 19, -31]],
+  ],
+  [
+    [[2.06, 2.16, 22, -48]],
+    [[1.15, 1.39, 18, -39], [2.71, 1.76, 19, -52]],
+    [],
+    [[1.24, 2.73, 15, -76]],
+  ],
+];
+const noirForm = ["Theme", "Response", "Drift", "Return", "Afterglow", "Theme variation", "Suspension", "Return"];
+
+function composeNoirBar({ seed, intensity, variation }, index, info) {
+  const energy = intensity / 100;
+  const change = variation / 100;
+  const phrase = Math.floor(index / 4);
+  const slot = index % 4;
+  const section = noirForm[phrase % noirForm.length];
+  const rng = randomFrom(`${seed}|noir|${index}`);
+  const passage = Math.floor(index / 8);
+  const progression = noirChanges[(info.home + [0, 1, 0, 3, 2, 1][passage % 6]) % noirChanges.length];
+  const [root, ...voices] = progression[Math.floor(index / 2) % 4];
+  const tonic = 48 + info.key;
+  const chordTones = [root, ...voices.map(pitch => pitch % 12)];
+  const events = [];
+  const note = (track, pitch, beat, duration, level, options = {}) => {
+    events.push({ track, pitch, beat, duration, level, ...options });
+  };
+
+  if (index % 2 === 0) {
+    note("bass", wrapPitch(tonic + root, 32), .32, 7.3, .62 + energy * .21);
+    const pans = [-.48, .44, -.29, .51];
+    for (const [voice, semitones] of voices.entries()) {
+      const beat = [.08, .46, .86, .31][voice] + rng() * .19;
+      const duration = 7.35 - beat * .44 + rng() * .48;
+      note("harmony", tonic + semitones, beat, duration, .48 + energy * .23, {
+        pan: pans[voice], color: rng(), release: 1.75 + rng() * .78,
+      });
+    }
+    note("air", 0, 0, 8, .64 + rng() * .19, { color: rng() });
+  }
+
+  const figure = section === "Response" || section === "Suspension" ? (info.home + 1) % 3 : info.home;
+  const motif = noirPhrases[figure][slot];
+  const roomForLead = section !== "Afterglow" || (slot === 3 && energy > .65);
+  if (roomForLead) {
+    for (const [beat, duration, pitch, bend] of motif) {
+      const bendVariation = rng() * 22 - 11;
+      const target = tonic + pitch + (rng() < change * .43 ? pick([-3, -2, 2, 3], rng) : 0);
+      const intervals = duration > 2.1 ? chordTones : blues;
+      note("lead", closestPitch(target, tonic, intervals), beat + rng() * .21, duration,
+        .62 + energy * .22 + rng() * .10, { bend: bend + bendVariation, color: rng() });
+    }
+  }
+
+  if ((slot === 2 || slot === 3) && rng() < .20 + energy * .40 + change * .24) {
+    const pitch = closestPitch(tonic + pick([27, 31, 34], rng), tonic, chordTones);
+    note("keys", pitch, 1.05 + rng() * 1.8, 2.48, .31 + energy * .21, { pan: rng() < .5 ? -.55 : .55 });
+  }
+
+  return {
+    index, phrase, section, keyName: info.keyName, bpm: info.bpm,
+    events: events.sort((left, right) => left.beat - right.beat),
+  };
+}
+
+// noir-audio.mjs
+function buildRoom(ctx) {
+  const buffer = ctx.createBuffer(2, Math.round(ctx.sampleRate * 6.25), ctx.sampleRate);
+  for (let channel = 0; channel < 2; channel++) {
+    const rng = randomFrom(`Noir hall ${channel}`);
+    const samples = buffer.getChannelData(channel);
+    const reflections = channel === 0 ? [.066, .139, .23] : [.093, .158, .265];
+    let smoothed = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const time = i / ctx.sampleRate;
+      const damping = .48 + .22 * Math.min(time / 2, 1);
+      smoothed = damping * smoothed + (rng() * 2 - 1) * (1 - damping);
+      const early = time < .4
+        ? reflections.reduce((gain, reflection) => gain + .32 * Math.exp(-Math.abs(time - reflection) * 140), 0)
+        : 0;
+      const bloom = Math.min(1, time / .19);
+      samples[i] = smoothed * (bloom + early) * Math.exp(-time * 1.23);
+    }
+  }
+  return buffer;
+}
+
+function buildAir(ctx) {
+  const buffer = ctx.createBuffer(2, Math.round(ctx.sampleRate * 5.2), ctx.sampleRate);
+  for (let channel = 0; channel < 2; channel++) {
+    const rng = randomFrom(`Noir air ${channel}`);
+    const samples = buffer.getChannelData(channel);
+    let slow = 0;
+    let soft = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const noise = rng() * 2 - 1;
+      slow = .981 * slow + .019 * noise;
+      soft = .76 * soft + .24 * noise;
+      const fade = Math.min(1, i / 1200, (samples.length - 1 - i) / 1200);
+      samples[i] = (slow * 2.2 + soft * .41) * fade;
+    }
+  }
+  return buffer;
+}
+
+function layer(ctx, destination, shape, hz, detune, level) {
+  const voice = oscillator(ctx, shape, hz, detune);
+  const mix = ctx.createGain();
+  mix.gain.value = level;
+  voice.connect(mix).connect(destination);
+  return voice;
+}
+
+function swell(param, start, duration, attack, tail, level) {
+  param.setValueAtTime(.00001, start);
+  param.linearRampToValueAtTime(level * .72, start + attack);
+  param.linearRampToValueAtTime(level, start + attack + (duration - attack) * .36);
+  param.linearRampToValueAtTime(level * .71, start + duration);
+  param.linearRampToValueAtTime(level * .14, start + duration + tail * .64);
+  param.exponentialRampToValueAtTime(.00001, start + duration + tail);
+}
+
+class NoirSynth {
+  constructor(ctx, destination, assets) {
+    this.ctx = ctx;
+    this.assets = assets ?? {
+      pad: wave(ctx, [1, .30, .245, .14, .115, .068, .051, .033, .018, .011]),
+      brass: wave(ctx, [1, .62, .33, .24, .15, .093, .075, .063, .043, .028, .017]),
+      room: buildRoom(ctx),
+      air: buildAir(ctx),
+    };
+    this.output = ctx.createGain();
+    this.output.connect(destination);
+    this.color = filter(ctx, "highshelf", 1450);
+    this.color.connect(this.output);
+
+    this.room = ctx.createDelay(.25);
+    this.room.delayTime.value = .047;
+    const hall = ctx.createConvolver();
+    hall.buffer = this.assets.room;
+    const lowCut = filter(ctx, "highpass", 170);
+    const damping = filter(ctx, "lowpass", 2640);
+    const wet = ctx.createGain();
+    wet.gain.value = .78;
+    this.room.connect(hall).connect(lowCut).connect(damping).connect(wet).connect(this.color);
+
+    this.echo = ctx.createGain();
+    for (const [seconds, pan, level] of [[.43, -.60, .36], [.74, .65, .23]]) {
+      const delay = ctx.createDelay(1);
+      delay.delayTime.value = seconds;
+      const softened = filter(ctx, "lowpass", 1660, .65);
+      const tap = ctx.createGain();
+      tap.gain.value = level;
+      const space = stereo(ctx, pan);
+      this.echo.connect(delay).connect(softened).connect(tap).connect(space).connect(this.color);
+      space.connect(this.room);
+    }
+  }
+
+  voice(pan, room, echo = 0) {
+    const { ctx } = this;
+    const gain = ctx.createGain();
+    const panner = stereo(ctx, pan);
+    gain.connect(panner).connect(this.color);
+    const send = ctx.createGain();
+    send.gain.value = room;
+    panner.connect(send).connect(this.room);
+    if (echo) {
+      const reflection = ctx.createGain();
+      reflection.gain.value = echo;
+      gain.connect(reflection).connect(this.echo);
+    }
+    return gain;
+  }
+
+  play(bar, intensity, start) {
+    const seconds = 60 / bar.bpm;
+    this.color.gain.setTargetAtTime((intensity - 52) * .077, start, .44);
+    for (const event of bar.events) {
+      const at = start + event.beat * seconds;
+      const duration = event.duration * seconds;
+      switch (event.track) {
+        case "bass": this.bass(event, at, duration); break;
+        case "harmony": this.pad(event, at, duration, intensity); break;
+        case "lead": this.horn(event, at, duration, intensity); break;
+        case "keys": this.keys(event, at, duration); break;
+        case "air": this.air(event, at, duration); break;
+      }
+    }
+  }
+
+  pad(event, start, duration, intensity) {
+    const { ctx, assets } = this;
+    const hz = frequency(event.pitch);
+    const color = event.color;
+    const length = duration + event.release;
+    const end = start + length + .015;
+    const tone = filter(ctx, "lowpass", 700, .62);
+    tone.frequency.setValueAtTime(360 + hz * .69, start);
+    tone.frequency.exponentialRampToValueAtTime(810 + color * 190 + intensity * 4, start + 2.1 + color);
+    tone.frequency.exponentialRampToValueAtTime(620 + intensity * 2, start + length);
+    drift(ctx, tone.frequency, .09 + color * .12, 65, start, end);
+
+    const envelope = this.voice(event.pan, .65);
+    tone.connect(envelope);
+    swell(envelope.gain, start, duration, 1.04 + color * .76, event.release, event.level * .137);
+    const lower = layer(ctx, tone, assets.pad, hz, -7 + color * 2, .42);
+    const upper = layer(ctx, tone, assets.pad, hz, 5 + color * 3, .31);
+    const body = layer(ctx, tone, "triangle", hz, -1, .27);
+    drift(ctx, lower.detune, .18 + color * .13, 2.7, start, end);
+    drift(ctx, upper.detune, .13 + color * .09, 3.1, start, end);
+    for (const voice of [lower, upper, body]) {
+      voice.start(start);
+      voice.stop(end);
+    }
+  }
+
+  bass(event, start, duration) {
+    const { ctx } = this;
+    const hz = frequency(event.pitch);
+    const tail = 1.65;
+    const end = start + duration + tail + .01;
+    const tone = filter(ctx, "lowpass", 360);
+    const envelope = this.voice(0, .12);
+    tone.connect(envelope);
+    swell(envelope.gain, start, duration, 1.06, tail, event.level * .16);
+    const fundamental = layer(ctx, tone, "sine", hz, 0, .67);
+    const body = layer(ctx, tone, "triangle", hz, 1.7, .33);
+    for (const voice of [fundamental, body]) {
+      voice.start(start);
+      voice.stop(end);
+    }
+  }
+
+  horn(event, start, duration, intensity) {
+    const { ctx, assets } = this;
+    const hz = frequency(event.pitch);
+    const color = event.color;
+    const tail = 1.24 + color * .48;
+    const end = start + duration + tail + .012;
+    const tone = filter(ctx, "lowpass", 900, .88);
+    const cutoff = tone.frequency;
+    cutoff.setValueAtTime(420 + hz * .46, start);
+    cutoff.exponentialRampToValueAtTime(970 + hz * .71 + intensity * 6, start + Math.min(.95, duration * .54));
+    cutoff.exponentialRampToValueAtTime(640 + hz * .56, end);
+    const envelope = this.voice((color - .5) * .22, .81, .65);
+    tone.connect(envelope);
+    swell(envelope.gain, start, duration, Math.min(.26 + color * .22, duration * .38), tail, event.level * .225);
+
+    const first = layer(ctx, tone, assets.brass, hz, 0, .49);
+    const second = layer(ctx, tone, assets.brass, hz, 0, .27);
+    const foundation = layer(ctx, tone, "triangle", hz, 0, .24);
+    const vibrato = drift(ctx, first.detune, 4.35 + color * .86, 14 + color * 10, start, end, .36 + color * .12);
+    vibrato.connect(second.detune);
+    vibrato.connect(foundation.detune);
+    for (const [voice, cents] of [[first, -3], [second, 5.4], [foundation, .4]]) {
+      voice.detune.setValueAtTime(event.bend + cents, start);
+      voice.detune.linearRampToValueAtTime(cents + 6, start + .23 + color * .10);
+      voice.detune.linearRampToValueAtTime(cents, start + .58 + color * .17);
+      voice.detune.linearRampToValueAtTime(cents - 10, end - .021);
+      voice.start(start);
+      voice.stop(end);
+    }
+  }
+
+  keys(event, start, duration) {
+    const { ctx } = this;
+    const fundamental = frequency(event.pitch);
+    const tone = this.voice(event.pan, .78, .44);
+    for (const [ratio, level, tail] of [[1, .104, 1.31], [2, .038, .87], [3.01, .024, .57], [4.06, .011, .37]]) {
+      const length = duration * .4 + tail;
+      const voice = oscillator(ctx, "sine", fundamental * ratio);
+      const gain = ctx.createGain();
+      voice.connect(gain).connect(tone);
+      amp(gain, start, length, .025 + ratio * .004, length * .7, level * event.level, .32);
+      voice.start(start);
+      voice.stop(start + length + .01);
+    }
+  }
+
+  air(event, start, duration) {
+    const { ctx } = this;
+    const voice = ctx.createBufferSource();
+    voice.buffer = this.assets.air;
+    voice.loop = true;
+    const lowCut = filter(ctx, "highpass", 135);
+    const shade = filter(ctx, "lowpass", 590 + event.color * 370, .5);
+    const envelope = this.voice(0, .62);
+    const end = start + duration + 1.82;
+    drift(ctx, shade.frequency, .15, 145, start, end);
+    voice.connect(lowCut).connect(shade).connect(envelope);
+    swell(envelope.gain, start, duration, 1.78, 1.8, event.level * .082);
+    voice.start(start, event.color * 2);
+    voice.stop(end);
+  }
+
+  fadeOut(start, length) {
+    const end = start + length;
+    this.output.gain.setValueAtTime(1, start);
+    this.output.gain.linearRampToValueAtTime(0, end);
+    // Disconnect on the audio clock so pausing preserves the transition.
+    const cleanup = this.ctx.createConstantSource();
+    cleanup.offset.value = 0;
+    cleanup.connect(this.output);
+    cleanup.onended = () => this.output.disconnect();
+    cleanup.start(start);
+    cleanup.stop(end);
+  }
+}
+
+// noir-studio.mjs
+const padLayers = [
+  { wave: "dusk", detune: -5.8, width: -.26, attack: 1.00, release: 2.36, level: .082, cutoff: 590, sweep: 910, resonance: .72 },
+  { wave: "reed", detune: 6.9, width: .27, attack: 2.19, release: 2.91, level: .065, cutoff: 520, sweep: 1150, resonance: 1.62 },
+];
+const leadLayers = [
+  { wave: "dusk", detune: -2.8, width: -.20, attack: .28, release: 1.39, level: .142, cutoff: 630, sweep: 1330, resonance: .94 },
+  { wave: "brass", detune: 5.1, width: .23, attack: .52, release: 1.98, level: .110, cutoff: 590, sweep: 1830, resonance: 1.56 },
+];
+
+function buildVoices(ctx) {
+  // Browser oscillator tables remove harmonics above Nyquist at playback pitch.
+  const brass = Array.from({ length: 24 }, (_, index) => {
+    const harmonic = index + 1;
+    return (harmonic % 2 ? 1 : .91) / harmonic ** 1.04;
+  });
+  const reed = Array.from({ length: 21 }, (_, index) => {
+    const harmonic = index + 1;
+    return Math.sin(Math.PI * .31 * harmonic) / (harmonic * Math.sin(Math.PI * .31));
+  });
+  const drive = Float32Array.from({ length: 513 }, (_, index) => {
+    const x = index / 256 - 1;
+    return Math.tanh(1.48 * (x + .075 * x * x)) / Math.tanh(1.48);
+  });
+  return {
+    dusk: wave(ctx, [1, .41, .204, .079, .092, .044, .031, .025, .018]),
+    reed: wave(ctx, reed),
+    brass: wave(ctx, brass),
+    drive,
+  };
+}
+
+// Interpolate continuously through attack, pressure, and release points.
+function shape(param, start, length, points) {
+  const values = new Float32Array(160);
+  let segment = 0;
+  for (let sample = 0; sample < values.length; sample++) {
+    const time = length * sample / (values.length - 1);
+    while (segment < points.length - 2 && time > points[segment + 1][0]) segment++;
+    const [leftTime, leftValue] = points[segment];
+    const [rightTime, rightValue] = points[segment + 1];
+    const fraction = Math.min(1, (time - leftTime) / (rightTime - leftTime));
+    const eased = fraction * fraction * (3 - 2 * fraction);
+    values[sample] = leftValue + (rightValue - leftValue) * eased;
+  }
+  param.setValueCurveAtTime(values, start, length);
+}
+
+class NoirStudioSynth extends NoirSynth {
+  constructor(ctx, destination, assets) {
+    super(ctx, destination, assets);
+    this.assets.studio ??= buildVoices(ctx);
+    this.room.delayTime.value = .067;
+
+    this.ensemble = filter(ctx, "highpass", 300, .66);
+    this.chorusMotion = [];
+    for (const { time, rate, extent, pan } of [
+      { time: .016, rate: .217, extent: .0013, pan: -.78 },
+      { time: .024, rate: .333, extent: .0017, pan: .80 },
+    ]) {
+      const delay = ctx.createDelay(.05);
+      delay.delayTime.value = time;
+      const motion = oscillator(ctx, "sine", rate);
+      const depth = ctx.createGain();
+      depth.gain.value = extent;
+      motion.connect(depth).connect(delay.delayTime);
+      motion.start();
+      this.chorusMotion.push(motion);
+
+      const softened = filter(ctx, "lowpass", 2750, .65);
+      const returnLevel = ctx.createGain();
+      returnLevel.gain.value = .28;
+      const panner = stereo(ctx, pan);
+      this.ensemble.connect(delay).connect(softened).connect(returnLevel).connect(panner).connect(this.color);
+      panner.connect(this.room);
+    }
+  }
+
+  pad(event, start, duration, intensity) {
+    for (const layer of padLayers) this.analogVoice(event, layer, start, duration, intensity, false);
+  }
+
+  horn(event, start, duration, intensity) {
+    for (const layer of leadLayers) this.analogVoice(event, layer, start, duration, intensity, true);
+    this.breath(event, start, duration);
+  }
+
+  analogVoice(event, layer, start, duration, intensity, lead) {
+    const { ctx } = this;
+    const color = event.color;
+    const energy = intensity / 100;
+    const hz = frequency(event.pitch);
+    const upper = layer.detune > 0;
+    const attack = Math.min(layer.attack * (.81 + color * .36), duration * .65);
+    const tail = layer.release * (.88 + color * .26);
+    const length = duration + tail;
+    const end = start + length + .014;
+    const peakTime = attack + (duration - attack) * (upper ? .48 : .24);
+    const center = layer.cutoff + hz * (lead ? .64 : .72);
+    const peakCutoff = center + layer.sweep * (.44 + energy * .39 + color * .19);
+    const level = event.level * layer.level * (.83 + energy * .20);
+    const pan = Math.max(-.85, Math.min(.85, (event.pan ?? (color - .5) * .15) + layer.width));
+    const voice = oscillator(ctx, this.assets.studio[layer.wave], hz, layer.detune);
+    const highPass = filter(ctx, "highpass", hz * (upper ? .54 : .25), .71);
+    const lowPass = filter(ctx, "lowpass", center, layer.resonance);
+    const saturation = ctx.createWaveShaper();
+    saturation.curve = this.assets.studio.drive;
+    saturation.oversample = "2x";
+    const output = this.voice(pan, lead ? .78 : .66, lead ? .57 : .10);
+    voice.connect(highPass).connect(lowPass).connect(saturation).connect(output);
+    output.connect(this.ensemble);
+
+    shape(output.gain, start, length, [
+      [0, 0], [attack, level * (upper ? .49 : .77)], [peakTime, level],
+      [duration, level * (upper ? .57 : .71)], [duration + tail * .46, level * .22], [length, 0],
+    ]);
+    shape(lowPass.frequency, start, length, [
+      [0, center * .78], [attack, center * (upper ? 1.04 : 1.17)], [peakTime, peakCutoff],
+      [duration, center + (peakCutoff - center) * .43], [length, center * .70],
+    ]);
+    drift(ctx, lowPass.frequency, .19 + color * .13, 34 + energy * 30, start, end);
+    drift(ctx, voice.detune, .27 + color * (upper ? .37 : .23), upper ? 3.7 : 2.2, start, end);
+    if (lead) {
+      const cents = layer.detune;
+      shape(voice.detune, start, length, [
+        [0, cents + event.bend * (upper ? .70 : 1.18)],
+        [attack, cents + (upper ? 3 : 8)], [peakTime, cents + .8],
+        [duration, cents + (upper ? 3 : -2)], [length, cents - 8],
+      ]);
+      drift(ctx, voice.detune, 4.27 + color * .73, (upper ? 18 : 12) + energy * 5, start, end, attack);
+    }
+    voice.start(start);
+    voice.stop(end);
+  }
+
+  breath(event, start, duration) {
+    const { ctx } = this;
+    const air = ctx.createBufferSource();
+    air.buffer = this.assets.air;
+    const tone = filter(ctx, "bandpass", 1520 + event.color * 520, .77);
+    const gain = this.voice((event.color - .5) * .22, .83);
+    const length = Math.min(.48 + event.color * .27, duration * .60);
+    air.connect(tone).connect(gain);
+    amp(gain, start, length, .13, length * .55, event.level * .049, .38);
+    air.start(start, .4 + event.color * 2);
+    air.stop(start + length + .012);
+  }
+
+  fadeOut(start, length) {
+    super.fadeOut(start, length);
+    for (const motion of this.chorusMotion) motion.stop(start + length);
+  }
+}
+
+// audio.mjs
+const noirSynths = { noir: NoirSynth, "noir-studio": NoirStudioSynth };
+
+function pulse(ctx, duty) {
+  const cosine = new Float32Array(40);
+  const sine = new Float32Array(40);
+  for (let harmonic = 1; harmonic < cosine.length; harmonic++) {
+    cosine[harmonic] = 2 * Math.sin(Math.PI * duty * harmonic) / (Math.PI * harmonic);
+  }
+  return ctx.createPeriodicWave(cosine, sine);
+}
+
+function noiseBuffer(ctx) {
+  const length = Math.round(ctx.sampleRate * .35);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  const rng = randomFrom("studio percussion");
+  for (let sample = 0; sample < length; sample++) data[sample] = rng() * 2 - 1;
+  return buffer;
+}
+
+function impulse(ctx) {
+  const length = Math.round(ctx.sampleRate * 2.7);
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  const rng = randomFrom("studio room");
+  for (let side = 0; side < 2; side++) {
+    const data = buffer.getChannelData(side);
+    let smoothNoise = 0;
+    for (let sample = 0; sample < length; sample++) {
+      const time = sample / ctx.sampleRate;
+      smoothNoise = smoothNoise * .52 + (rng() * 2 - 1) * .48;
+      data[sample] = smoothNoise * Math.min(1, time * 40) * Math.exp(-time * 2.5);
+    }
+  }
+  return buffer;
+}
+
+class Synth {
+  constructor(ctx, destination, assets) {
+    this.ctx = ctx;
+    this.assets = assets ?? {
+      pulseLead: pulse(ctx, .25), pulseArp: pulse(ctx, .125),
+      noise: noiseBuffer(ctx), room: impulse(ctx),
+    };
+    this.output = ctx.createGain();
+    this.output.connect(destination);
+    this.ambience = ctx.createConvolver();
+    this.ambience.buffer = this.assets.room;
+    const wet = ctx.createGain();
+    wet.gain.value = .52;
+    this.ambience.connect(wet).connect(this.output);
+
+    this.noir = null;
+  }
+
+  voiceOutput(pan, room = 0) {
+    const { ctx } = this;
+    const gain = ctx.createGain();
+    const stereo = typeof ctx.createStereoPanner === "function" ? ctx.createStereoPanner() : ctx.createGain();
+    if (stereo.pan) stereo.pan.value = pan;
+    gain.connect(stereo).connect(this.output);
+    if (room) {
+      const send = ctx.createGain();
+      send.gain.value = room;
+      stereo.connect(send).connect(this.ambience);
+    }
+    return gain;
+  }
+
+  triggerBar(bar, style, intensity, time, reset = false) {
+    const Renderer = noirSynths[style];
+    if (this.noir && (reset || style !== this.noirStyle)) {
+      this.noir.fadeOut(time, Renderer ? 1.15 : .62);
+      this.noir = null;
+    }
+    if (Renderer) {
+      if (!this.noir) {
+        this.noir = new Renderer(this.ctx, this.output, this.assets.noir);
+        this.assets.noir = this.noir.assets;
+        this.noirStyle = style;
+      }
+      this.noir.play(bar, intensity, time);
+      return;
+    }
+    const seconds = 60 / bar.bpm;
+    const balance = style === "fm" ? 1.22 : 1;
+    for (const note of bar.events) {
+      const event = { ...note, level: note.level * balance };
+      const at = time + event.beat * seconds;
+      const duration = event.duration * seconds;
+      if (["kick", "snare", "hat"].includes(event.track)) this.drums(style, event, at);
+      else if (style === "chip") this.chip(event, at, duration);
+      else this.fm(event, at, duration, intensity);
+    }
+  }
+
+  chip(event, at, duration) {
+    const { ctx, assets } = this;
+    const lead = event.track === "lead";
+    const bass = event.track === "bass";
+    const shape = bass ? "triangle" : lead ? assets.pulseLead : assets.pulseArp;
+    const tone = oscillator(ctx, shape, frequency(event.pitch));
+    const gain = this.voiceOutput(0);
+    tone.connect(gain);
+    amp(gain, at, duration, .003, Math.min(.04, duration * .53),
+      event.level * (bass ? .22 : lead ? .104 : .046), .74);
+    tone.start(at);
+    tone.stop(at + duration + .005);
+  }
+
+  fm(event, at, duration, intensity) {
+    const { ctx } = this;
+    const bass = event.track === "bass";
+    const lead = event.track === "lead";
+    const hz = frequency(event.pitch);
+    const tone = oscillator(ctx, "sine", hz);
+    const modulator = oscillator(ctx, "sine", hz * (lead ? 2 : bass ? 1 : 3));
+    const depth = ctx.createGain();
+    const tail = duration + (bass ? .04 : lead ? .095 : .17);
+    const gain = this.voiceOutput(event.pan ?? 0, bass ? 0 : .20);
+    modulator.connect(depth).connect(tone.frequency);
+    tone.connect(gain);
+    const strength = bass ? 1.0 : lead ? 1.9 : 1.45;
+    depth.gain.setValueAtTime(hz * (strength + intensity * .008), at);
+    depth.gain.exponentialRampToValueAtTime(hz * (lead ? .5 : .23), at + tail * .79);
+    amp(gain, at, tail, bass ? .008 : .014, Math.min(tail * .69, .28),
+      event.level * (bass ? .21 : lead ? .14 : .063), bass ? .40 : .48);
+    for (const voice of [tone, modulator]) {
+      voice.start(at);
+      voice.stop(at + tail + .009);
+    }
+  }
+
+  drums(style, event, at) {
+    const { ctx } = this;
+    const chip = style === "chip";
+    if (event.track === "kick") {
+      const gain = this.voiceOutput(0);
+      const length = chip ? .145 : .21;
+      const voice = oscillator(ctx, chip ? "triangle" : "sine", chip ? 109 : 142);
+      voice.frequency.exponentialRampToValueAtTime(46, at + length * .54);
+      voice.connect(gain);
+      amp(gain, at, length, .004, length - .01, event.level * .25);
+      voice.start(at);
+      voice.stop(at + length + .01);
+      return;
+    }
+    const hat = event.track === "hat";
+    const length = hat ? .063 : chip ? .106 : .184;
+    const source = ctx.createBufferSource();
+    source.buffer = this.assets.noise;
+    source.playbackRate.value = chip ? (hat ? .84 : .54) : 1;
+    const toneFilter = filter(ctx, hat ? "highpass" : "bandpass", hat ? 6300 : chip ? 1600 : 1850);
+    const gain = this.voiceOutput(chip ? 0 : hat ? .29 : -.11, chip ? 0 : .18);
+    source.connect(toneFilter).connect(gain);
+    amp(gain, at, length, .003, length - .004, event.level * (hat ? .12 : .27));
+    source.start(at);
+    source.stop(at + length + .004);
+  }
+
+  silence() {
+    const at = this.ctx.currentTime;
+    this.noir?.fadeOut(at, .055);
+    this.output.gain.setTargetAtTime(0, at, .008);
+    setTimeout(() => this.output.disconnect(), 65);
+  }
+}
+
+class Playback {
+  constructor(config) {
+    this.config = { ...config };
+    this.state = "ready";
+    this.records = [];
+    this.timer = null;
+    this.suspendTimer = null;
+  }
+
+  setConfig(config) {
+    const volumeChanged = config.volume !== this.config.volume;
+    this.config = { ...config };
+    if (this.ctx && volumeChanged) {
+      this.master.gain.setTargetAtTime(this.config.volume / 100 * .92, this.ctx.currentTime, .037);
+    }
+  }
+
+  async play() {
+    if (this.state === "playing") return;
+    clearTimeout(this.suspendTimer);
+    if (!this.ctx) {
+      const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+      if (!Context) throw new Error("This browser does not support Web Audio.");
+      this.ctx = new Context();
+      this.master = this.ctx.createGain();
+      const limiter = this.ctx.createDynamicsCompressor();
+      limiter.threshold.value = -8;
+      limiter.knee.value = 13;
+      limiter.ratio.value = 8;
+      limiter.attack.value = .008;
+      limiter.release.value = .20;
+      this.master.connect(limiter).connect(this.ctx.destination);
+      this.master.gain.value = this.config.volume / 100 * .92;
+    }
+    await this.ctx.resume();
+    if (this.state === "ready") {
+      this.synth = new Synth(this.ctx, this.master, this.assets);
+      this.assets = this.synth.assets;
+      this.records = [];
+      this.startTime = this.ctx.currentTime + .052;
+      this.nextTime = this.startTime;
+    }
+    this.state = "playing";
+    this.tick();
+    this.startClock();
+  }
+
+  async pause() {
+    if (this.state !== "playing") return;
+    await this.ctx.suspend();
+    this.stopClock();
+    this.state = "paused";
+  }
+
+  stop() {
+    this.stopClock();
+    if (this.synth) this.synth.silence();
+    this.synth = null;
+    this.records = [];
+    this.state = "ready";
+    if (this.ctx) {
+      this.suspendTimer = setTimeout(() => {
+        if (this.state === "ready") this.ctx.suspend().catch(() => {});
+      }, 85);
+    }
+  }
+
+  startClock() {
+    if (!this.timer && !this.worker) {
+      try {
+        const clockUrl = URL.createObjectURL(new Blob(["setInterval(() => postMessage(null), 32);\n"], { type: "text/javascript" }));
+        let worker;
+        try {
+          worker = new Worker(clockUrl);
+        } finally {
+          URL.revokeObjectURL(clockUrl);
+        }
+        this.worker = worker;
+        worker.onmessage = () => this.tick();
+        worker.onerror = () => {
+          if (this.worker !== worker) return;
+          worker.terminate();
+          this.worker = null;
+          if (this.state === "playing") this.timer = setInterval(() => this.tick(), 35);
+        };
+      } catch {
+        this.timer = setInterval(() => this.tick(), 35);
+      }
+    }
+  }
+
+  stopClock() {
+    this.worker?.terminate();
+    this.worker = null;
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  tick() {
+    if (this.state !== "playing" || this.ctx.state !== "running") return;
+    const now = this.ctx.currentTime;
+    if (this.nextTime > now + .17) return;
+    // Skip the missed time after a sleeping tab or device. Keep the previous musical position.
+    this.nextTime = Math.max(this.nextTime, now + .012);
+    const previous = this.records.at(-1);
+    const reset = !previous || previous.config.seed !== this.config.seed || previous.config.style !== this.config.style;
+    const bar = composeBar(this.config, reset ? 0 : previous.bar.index + 1);
+    const start = this.nextTime;
+    const end = start + 4 * 60 / bar.bpm;
+    this.synth.triggerBar(bar, this.config.style, this.config.intensity, start, reset);
+    this.records.push({ bar, config: this.config, start, end, epoch: reset ? start : previous.epoch });
+    if (this.records.length > 8) this.records.shift();
+    this.nextTime = end;
+  }
+
+  frame() {
+    if (this.state === "ready") return null;
+    const now = this.ctx.currentTime;
+    const active = this.records.findLast(record => record.start <= now) ?? this.records[0];
+    if (!active) return null;
+    return {
+      active,
+      records: this.records,
+      position: Math.min(4, Math.max(0, (now - active.start) * active.bar.bpm / 60)),
+      elapsed: Math.max(0, now - this.startTime),
+    };
+  }
+}
+
+// studio.mjs
+const element = id => document.getElementById(id);
+const sliders = ["intensity", "variation", "volume"];
+const styles = document.querySelectorAll("input[name=style]");
+const play = element("play");
+const stop = element("stop");
+const error = element("error");
+const seedButton = element("new-seed");
+const canvas = element("score");
+const playhead = element("playhead");
+const readouts = {
+  state: element("status").querySelector("span"),
+  style: element("playing-style"),
+  phrase: element("phrase-label"),
+  music: element("key-tempo"),
+  elapsed: element("elapsed"),
+  seed: element("seed-display"),
+};
+const storageKey = "endless-music-studio-v1";
+
+function freshSeed() {
+  const random = new Uint32Array(1);
+  crypto.getRandomValues(random);
+  return (random[0] % 36 ** 6).toString(36).toUpperCase().padStart(6, "0");
+}
+
+function loadSettings() {
+  const config = { style: "chip", intensity: 55, variation: 45, volume: 65, seed: freshSeed() };
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey));
+    if (stored && Object.hasOwn(profiles, stored.style)) config.style = stored.style;
+    if (stored && /^[A-Z0-9]{6}$/.test(stored.seed)) config.seed = stored.seed;
+    for (const name of sliders) {
+      const value = stored?.[name];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        config[name] = Math.round(Math.min(100, Math.max(0, value)));
+      }
+    }
+  } catch {
+    // Playback works in a browser that blocks storage.
+  }
+  return config;
+}
+
+const config = loadSettings();
+const playback = new Playback(config);
+let busy = false;
+let animation = 0;
+let needsDraw = true;
+let lastActive;
+let lastScheduled;
+
+function updateText(node, text) {
+  if (node.textContent !== text) node.textContent = text;
+}
+
+function updateSlider(name) {
+  const field = element(name);
+  const percent = `${config[name]}%`;
+  field.style.setProperty("--level", percent);
+  element(`${name}-value`).value = percent;
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(config));
+  } catch {
+    // The controls remain available for this session.
+  }
+  playback.setConfig(config);
+  needsDraw = true;
+  render();
+}
+
+function displayTime(elapsed) {
+  const total = Math.floor(elapsed);
+  const hours = Math.floor(total / 3600);
+  const minute = String(Math.floor(total / 60) % 60).padStart(2, "0");
+  const second = String(total % 60).padStart(2, "0");
+  updateText(readouts.elapsed, hours ? `${hours}:${minute}:${second}` : `${minute}:${second}`);
+  const duration = `PT${total}S`;
+  if (readouts.elapsed.dateTime !== duration) readouts.elapsed.dateTime = duration;
+}
+
+function setup() {
+  document.body.dataset.style = config.style;
+  for (const name of sliders) {
+    const field = element(name);
+    field.value = config[name];
+    updateSlider(name);
+    field.addEventListener("input", () => {
+      config[name] = Number(field.value);
+      updateSlider(name);
+      saveSettings();
+    });
+  }
+  for (const choice of styles) {
+    choice.checked = choice.value === config.style;
+    choice.addEventListener("change", () => {
+      if (!choice.checked) return;
+      config.style = choice.value;
+      saveSettings();
+    });
+  }
+  seedButton.addEventListener("click", () => {
+    let next = freshSeed();
+    if (next === config.seed) next = freshSeed();
+    config.seed = next;
+    saveSettings();
+  });
+  play.addEventListener("click", togglePlay);
+  stop.addEventListener("click", () => {
+    playback.stop();
+    error.hidden = true;
+    refreshTransport();
+    render();
+  });
+  window.addEventListener("keydown", event => {
+    if (event.code !== "Space" || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.target instanceof Element && event.target.closest("button,input,a,select,textarea,[contenteditable]")) return;
+    event.preventDefault();
+    togglePlay();
+  });
+  new ResizeObserver(() => {
+    needsDraw = true;
+    render();
+  }).observe(canvas);
+  refreshTransport();
+  saveSettings();
+}
+
+async function togglePlay() {
+  if (busy) return;
+  busy = true;
+  error.hidden = true;
+  refreshTransport();
+  try {
+    if (playback.state === "playing") await playback.pause();
+    else await playback.play();
+  } catch (failure) {
+    error.textContent = failure.message || "Playback could not start. Try Play again.";
+    error.hidden = false;
+  } finally {
+    busy = false;
+    refreshTransport();
+    render();
+  }
+}
+
+function refreshTransport() {
+  const { state } = playback;
+  const stateLabel = state === "playing" ? "Playing" : state === "paused" ? "Paused" : "Ready";
+  element("status").dataset.state = state;
+  updateText(readouts.state, stateLabel);
+  play.dataset.state = state;
+  play.querySelector(".play-label").textContent = state === "playing" ? "Pause" : state === "paused" ? "Resume" : "Play";
+  play.setAttribute("aria-disabled", String(busy));
+  stop.disabled = busy || state === "ready";
+}
+
+function animate() {
+  animation = 0;
+  render();
+}
+
+function render() {
+  const frame = playback.frame();
+  const active = frame?.active;
+  const audible = active?.config ?? config;
+  if (document.body.dataset.style !== audible.style) document.body.dataset.style = audible.style;
+  const styleName = profiles[audible.style].name;
+  const queue = audible.style !== config.style
+    ? ` · ${profiles[config.style].name} queued`
+    : audible.seed !== config.seed ? " · new seed queued" : "";
+  updateText(readouts.style, styleName + queue);
+  updateText(readouts.seed, `Seed ${audible.seed}`);
+  displayTime(frame?.elapsed ?? 0);
+
+  const scheduled = frame?.records.at(-1);
+  if (needsDraw || lastActive !== active || lastScheduled !== scheduled) {
+    const bar = active?.bar ?? composeBar(config, 0);
+    const first = bar.phrase * 4;
+    const previewConfig = audible.style === config.style && audible.seed === config.seed ? config : audible;
+    const phrase = Array.from({ length: 4 }, (_, index) => {
+      const actual = frame?.records.find(record => record.epoch === active.epoch && record.bar.index === first + index);
+      return actual?.bar ?? composeBar(previewConfig, first + index);
+    });
+    updateText(readouts.phrase, `Phrase ${String(bar.phrase + 1).padStart(2, "0")} · ${bar.section}`);
+    updateText(readouts.music, `${bar.keyName} · ${bar.bpm} BPM`);
+    drawPhrase(phrase);
+    needsDraw = false;
+    lastActive = active;
+    lastScheduled = scheduled;
+  }
+  playhead.hidden = !frame;
+  if (frame) {
+    const position = (active.bar.index % 4 * 4 + frame.position) / 16;
+    playhead.style.transform = `translateX(${Math.min(canvas.clientWidth - 1, canvas.clientWidth * position)}px)`;
+  }
+  if (playback.state === "playing" && !animation) animation = requestAnimationFrame(animate);
+}
+
+function noteRow(event) {
+  const pitch = event.pitch;
+  const ratio = (value, floor, ceiling) => Math.min(1, Math.max(0, (value - floor) / (ceiling - floor)));
+  switch (event.track) {
+    case "lead": return .31 - ratio(pitch, 58, 86) * .26;
+    case "keys":
+    case "harmony": return .58 - ratio(pitch, 50, 80) * .21;
+    case "bass": return .80 - ratio(pitch, 32, 57) * .16;
+    case "kick": return .94;
+    case "snare": return .90;
+    default: return .86;
+  }
+}
+
+function drawPhrase(bars) {
+  const graphics = canvas.getContext("2d");
+  const { clientWidth: width, clientHeight: height } = canvas;
+  if (!graphics || !width || !height) return;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  graphics.setTransform(scale, 0, 0, scale, 0, 0);
+  const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim();
+  const beatWidth = width / 16;
+
+  graphics.lineWidth = 1;
+  for (let beat = 0; beat <= 16; beat++) {
+    graphics.strokeStyle = beat % 4 === 0 ? "#424353" : "#282a38";
+    const x = Math.min(width - .5, Math.floor(beat * beatWidth) + .5);
+    graphics.beginPath();
+    graphics.moveTo(x, 0);
+    graphics.lineTo(x, height);
+    graphics.stroke();
+  }
+  for (let row = 0; row <= 25; row++) {
+    const y = Math.min(height - .5, Math.floor(row / 25 * height) + .5);
+    graphics.strokeStyle = [0, 8, 15, 21, 25].includes(row) ? "#373848" : "#232431";
+    graphics.beginPath();
+    graphics.moveTo(0, y);
+    graphics.lineTo(width, y);
+    graphics.stroke();
+  }
+
+  const rowHeight = Math.max(2.5, height * .025);
+  const palette = { lead: accent, harmony: "#9492dc", keys: "#aaa6e5", bass: "#63c4ba" };
+  bars.forEach((bar, slot) => {
+    for (const event of bar.events) {
+      if (event.track === "air") continue;
+      const x = (slot * 4 + event.beat) * beatWidth + 1;
+      const y = noteRow(event) * height;
+      const length = Math.min(width - x, Math.max(2, event.duration * beatWidth - 1.7));
+      graphics.fillStyle = palette[event.track] ?? "#ad8a77";
+      graphics.globalAlpha = event.track === "lead" ? .93 : Math.min(.96, .46 + event.level * .48);
+      const drum = !Object.hasOwn(palette, event.track);
+      graphics.fillRect(x, y - rowHeight / 2, drum ? Math.min(length, 5) : length, rowHeight);
+    }
+  });
+  graphics.globalAlpha = 1;
+}
+
+setup();
+</script>
+</head>
+<body>
+  <main class="studio">
+    <header class="masthead">
+      <div class="heading">
+        <div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div>
+          <h1>Endless Music Studio</h1>
+          <p>Shape a soundtrack that keeps evolving.</p>
+        </div>
+      </div>
+      <div class="keyboard"><kbd>Space</kbd> Play / pause</div>
+    </header>
+
+    <div class="workspace">
+      <section class="panel monitor" aria-labelledby="monitor-title">
+        <div class="monitor-header">
+          <div>
+            <h2 id="monitor-title">Phrase monitor</h2>
+            <p id="playing-style" aria-live="polite">8-bit Console</p>
+          </div>
+          <div class="status" id="status" data-state="ready" role="status"><i aria-hidden="true"></i><span>Ready</span></div>
+        </div>
+        <div class="display">
+          <div class="display-top">
+            <span id="phrase-label">Phrase 01 <b>·</b> Theme</span>
+            <span id="key-tempo">A minor <b>·</b> 128 BPM</span>
+          </div>
+          <div class="score-wrap" aria-hidden="true"><canvas id="score"></canvas><i id="playhead" hidden></i></div>
+          <div class="timeline" aria-hidden="true"><span>BAR 1</span><span>BAR 2</span><span>BAR 3</span><span>BAR 4</span></div>
+        </div>
+        <div class="signal">
+          <div class="legend" aria-label="Phrase monitor legend">
+            <span class="lead">Lead</span><span class="harmony">Harmony</span><span class="bass">Bass</span><span class="drums">Drums</span>
+          </div>
+          <time id="elapsed" datetime="PT0S" aria-label="Elapsed time">00:00</time>
+        </div>
+        <div class="transport">
+          <div class="transport-actions">
+            <button type="button" id="play" class="play"><span class="icon" aria-hidden="true"></span><span class="play-label">Play</span></button>
+            <button type="button" id="stop" class="secondary" disabled><span class="stop-icon" aria-hidden="true"></span>Stop</button>
+          </div>
+          <div class="seed-group">
+            <span id="seed-display" class="seed-display"></span>
+            <button type="button" id="new-seed" class="seed-button" title="Generate a new musical seed"><span class="seed-icon" aria-hidden="true">⟳</span>New seed</button>
+          </div>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Live controls</h2>
+        <p class="control-intro">Shape the mix while it plays.</p>
+        <div class="sliders">
+          <div class="slider">
+            <div class="slider-head"><label for="intensity">Intensity</label><output for="intensity" id="intensity-value">55%</output></div>
+            <input id="intensity" type="range" min="0" max="100" value="55">
+            <div class="slider-ends" aria-hidden="true"><span>Spare</span><span>Full</span></div>
+          </div>
+          <div class="slider">
+            <div class="slider-head"><label for="variation">Variation</label><output for="variation" id="variation-value">45%</output></div>
+            <input id="variation" type="range" min="0" max="100" value="45">
+            <div class="slider-ends" aria-hidden="true"><span>Steady</span><span>Exploratory</span></div>
+          </div>
+          <div class="slider">
+            <div class="slider-head"><label for="volume">Volume</label><output for="volume" id="volume-value">65%</output></div>
+            <input id="volume" type="range" min="0" max="100" value="65">
+            <div class="slider-ends" aria-hidden="true"><span>Mute</span><span>Max</span></div>
+          </div>
+        </div>
+        <p class="control-note"><span aria-hidden="true"></span>Style and composition changes take effect on a bar boundary.</p>
+      </section>
+    </div>
+
+    <fieldset class="engines">
+      <legend>Sound engines</legend>
+      <div class="engine-grid">
+        <label class="engine-card" data-style="chip">
+          <input type="radio" name="style" value="chip" checked>
+          <span class="engine-mark chip-mark" aria-hidden="true"><i></i></span>
+          <span class="engine-text"><strong>8-bit Console</strong><span>Pulse leads, triangle bass and noise drums.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="fm">
+          <input type="radio" name="style" value="fm">
+          <span class="engine-mark fm-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="engine-text"><strong>16-bit Console</strong><span>Bright FM tones, stereo chords and punchy drums.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="noir">
+          <input type="radio" name="style" value="noir">
+          <span class="engine-mark noir-mark" aria-hidden="true"><i></i><i></i></span>
+          <span class="engine-text"><strong>Noir Synth</strong><span>Expressive synth brass, drifting chords and long stereo trails.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="noir-studio">
+          <input type="radio" name="style" value="noir-studio">
+          <span class="engine-mark studio-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="engine-text"><strong>Noir Studio</strong><span>Layered analog-style synth with moving filters and stereo chorus.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+      </div>
+    </fieldset>
+    <footer><span>Generated live in your browser</span></footer>
+  </main>
+</body>
+</html>
