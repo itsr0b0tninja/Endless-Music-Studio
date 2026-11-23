@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive studio for continuously evolving console-inspired music and synth ambience.">
+  <meta name="color-scheme" content="dark">
+  <title>Endless Music Studio</title>
+  <link rel="stylesheet" href="studio.css">
+  <script type="module" src="studio.mjs"></script>
+</head>
+<body>
+  <main class="studio">
+    <header class="masthead">
+      <div class="heading">
+        <div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div>
+          <h1>Endless Music Studio</h1>
+          <p>Shape a soundtrack that keeps evolving.</p>
+        </div>
+      </div>
+      <div class="keyboard"><kbd>Space</kbd> Play / pause</div>
+    </header>
+
+    <div class="workspace">
+      <section class="panel monitor" aria-labelledby="monitor-title">
+        <div class="monitor-header">
+          <div>
+            <h2 id="monitor-title">Phrase monitor</h2>
+            <p id="playing-style" aria-live="polite">8-bit Console</p>
+          </div>
+          <div class="status" id="status" data-state="ready" role="status"><i aria-hidden="true"></i><span>Ready</span></div>
+        </div>
+        <div class="display">
+          <div class="display-top">
+            <span id="phrase-label">Phrase 01 <b>·</b> Theme</span>
+            <span id="key-tempo">A minor <b>·</b> 128 BPM</span>
+          </div>
+          <div class="score-wrap" aria-hidden="true"><canvas id="score"></canvas><i id="playhead" hidden></i></div>
+          <div class="timeline" aria-hidden="true"><span>BAR 1</span><span>BAR 2</span><span>BAR 3</span><span>BAR 4</span></div>
+        </div>
+        <div class="signal">
+          <div class="legend" aria-label="Phrase monitor legend">
+            <span class="lead">Lead</span><span class="harmony">Harmony</span><span class="bass">Bass</span><span class="drums">Drums</span>
+          </div>
+          <time id="elapsed" datetime="PT0S" aria-label="Elapsed time">00:00</time>
+        </div>
+        <div class="transport">
+          <div class="transport-actions">
+            <button type="button" id="play" class="play"><span class="icon" aria-hidden="true"></span><span class="play-label">Play</span></button>
+            <button type="button" id="stop" class="secondary" disabled><span class="stop-icon" aria-hidden="true"></span>Stop</button>
+          </div>
+          <div class="seed-group">
+            <span id="seed-display" class="seed-display"></span>
+            <button type="button" id="new-seed" class="seed-button" title="Generate a new musical seed"><span class="seed-icon" aria-hidden="true">⟳</span>New seed</button>
+          </div>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Live controls</h2>
+        <p class="control-intro">Shape the mix while it plays.</p>
+        <div class="sliders">
+          <div class="slider">
+            <div class="slider-head"><label for="intensity">Intensity</label><output for="intensity" id="intensity-value">55%</output></div>
+            <input id="intensity" type="range" min="0" max="100" value="55">
+            <div class="slider-ends" aria-hidden="true"><span>Spare</span><span>Full</span></div>
+          </div>
+          <div class="slider">
+            <div class="slider-head"><label for="variation">Variation</label><output for="variation" id="variation-value">45%</output></div>
+            <input id="variation" type="range" min="0" max="100" value="45">
+            <div class="slider-ends" aria-hidden="true"><span>Steady</span><span>Exploratory</span></div>
+          </div>
+          <div class="slider">
+            <div class="slider-head"><label for="volume">Volume</label><output for="volume" id="volume-value">65%</output></div>
+            <input id="volume" type="range" min="0" max="100" value="65">
+            <div class="slider-ends" aria-hidden="true"><span>Mute</span><span>Max</span></div>
+          </div>
+        </div>
+        <p class="control-note"><span aria-hidden="true"></span>Style and composition changes take effect on a bar boundary.</p>
+      </section>
+    </div>
+
+    <fieldset class="engines">
+      <legend>Sound engines</legend>
+      <div class="engine-grid">
+        <label class="engine-card" data-style="chip">
+          <input type="radio" name="style" value="chip" checked>
+          <span class="engine-mark chip-mark" aria-hidden="true"><i></i></span>
+          <span class="engine-text"><strong>8-bit Console</strong><span>Pulse leads, triangle bass and noise drums.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="fm">
+          <input type="radio" name="style" value="fm">
+          <span class="engine-mark fm-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="engine-text"><strong>16-bit Console</strong><span>Bright FM tones, stereo chords and punchy drums.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="noir">
+          <input type="radio" name="style" value="noir">
+          <span class="engine-mark noir-mark" aria-hidden="true"><i></i><i></i></span>
+          <span class="engine-text"><strong>Noir Synth</strong><span>Expressive synth brass, drifting chords and long stereo trails.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+        <label class="engine-card" data-style="noir-studio">
+          <input type="radio" name="style" value="noir-studio">
+          <span class="engine-mark studio-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="engine-text"><strong>Noir Studio</strong><span>Layered analog-style synth with moving filters and stereo chorus.</span></span>
+          <span class="radio-mark" aria-hidden="true"></span>
+        </label>
+      </div>
+    </fieldset>
+    <footer><span>Generated live in your browser</span></footer>
+  </main>
+</body>
+</html>
